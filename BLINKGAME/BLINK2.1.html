@@ -140,7 +140,6 @@
                 for (var j=0; j < tilesW; j++){
                   
                   var r = Math.random();
-                    console.log("FINISH: " + i + "," + j + " TILES:" + tilesW + "," + tilesH );
 
                   if (r > 0.5 || ( i * j === 0 ) || ((i+1)*(j+1) == tilesW*tilesH) ){
                     this.tiles[this.index] = new floorTile(j*tileSize, i*tileSize,cx);
