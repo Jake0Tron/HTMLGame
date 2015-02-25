@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <canvas id="canvas" width="800" height="800"><p>The canvas is not enabled.</p> </canvas>
+    <script src="utils.js"></script>
+    <script src="keycode.js"></script>
+    <script>
+    window.onload = function () {
+      // set up variables
+    
+        // canvas
+        var canvas = document.getElementById('canvas');
+        // context
+        var cx = canvas.getContext("2d");
+        // EventListeners
+        canvas.addEventListener('mousedown', function () {
+          // do something with mous click here!
+          mouseClick();
+        }, false);
+        //Keyboard listens on window, not canvas
+        window.addEventListener('keydown',onKeyboardEvent, false);
+        // mouse
+        var mouse = utils.captureMouse(canvas);
+        var tileSize=48;
+        var movSpd = tileSize; 
+        
+        // tile ctor
+        function tile(ix, iy, iw, ih, c, cx){
+            this.x=ix;
+            this.y=iy;
+            this.sizeX=iw;
+            this.sizeY=ih;
+            this.color=c;
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, this.sizeX, this.sizeY);  
+            }
+          }// END TILE
+
+            // player instance
+          var player = new tile(0,0,tileSize,tileSize,"#00FF00",cx);
+          var start =  new tile(0,0,tileSize,tileSize,"#FF00FF",cx);
+          var finish = new tile(tilesW, tilesH, tileSize,tileSize,"#FF0000",cx);
+          // dimension scaling
+          var tilesW = Math.ceil(canvas.width/tileSize);
+          var tilesH = Math.ceil(canvas.height/tileSize);
+
+          // MAP
+          function map(s, cx, p){
+            //this.data=s;
+            this.tiles= new Array(tilesW*tilesH);
+            this.index=0;
+            this.player = p;
+
+            this.fill = function(p){
+              
+              for (var i=0; i < tilesH; i++){
+                for (var j=0; j < tilesW; j++){
+                  
+                  var r = Math.random();
+                  if (r > 0.5)
+                    this.tiles[this.index] = new tile(j*tileSize, i*tileSize,tileSize,tileSize,"#000000",cx);
+                  else
+                    this.tiles[this.index] = new tile(j*tileSize, i*tileSize,tileSize,tileSize,"#AAAAAA",cx);
+                  
+                  this.index++;
+                } 
+              }
+              
+              // delete this.tiles[0];
+              // delete this.tiles[playerindex];
+              // delete this.tiles[this.index-1];
+              var playerindex = (this.player.x / tileSize) + (this.player.y / tileSize * tilesW);
+              this.tiles[playerindex] = new tile(j*tileSize, i*tileSize,tileSize,tileSize,"#AAAAAA",cx);
+
+              this.index=0;
+              // console.log(this.tiles);
+            }// end fill()
+                
+
+            this.draw = function(cx){
+             for (var k = 0; k < tilesH*tilesW; k++){
+                 this.tiles[k].draw(cx);
+              }
+            }// end draw
+
+
+          }// END MAP
+
+        
+
+        var onez = "000000000000000000000111111111111111111001111111111111111110011111111111111111100111111111111111111000000000000000000000";
+        // map instance
+        var M =new map(onez, cx, player);
+        M.fill();
+       
+
+        
+        
+        // keyboard response, movement limited to canvas area
+        function onKeyboardEvent(){
+          switch (event.keyCode) {
+           case keycode.UP:
+             console.log("up!");
+             if (player.y > 0 + player.sizeY/2)
+              player.y -= movSpd;
+           break;
+
+           case keycode.DOWN:
+            console.log("down!");
+            if (player.y < (canvas.height - 1.5*player.sizeY) )
+            player.y += movSpd;
+           break;
+
+           case keycode.LEFT:
+            console.log("left!");
+            if (player.x > 0 + player.sizeX/2)
+              player.x -= movSpd;
+           break;
+
+           case keycode.RIGHT:
+            console.log("right!");
+            if (player.x < (canvas.width - 1.5*player.sizeX) )
+            player.x += movSpd;
+           break;
+           case keycode.R:
+            console.log("RANDOM!");
+              M.fill();
+           break;
+           default:
+            console.log(event.keyCode); 
+          }
+        }
+
+        function mouseClick(){
+
+        }
+
+
+
+      // self invoking function STARTS MAIN LOOP!
+      (function drawFrame () {
+        window.requestAnimationFrame(drawFrame, canvas);
+      /** clear*/
+        cx.clearRect(0,0, canvas.width, canvas.height);
+      /** update */
+        //player.update();
+        // map.update();
+      /** draw */       
+        // enemies.draw(cx);
+          // crazy static effect
+          //M.fill();
+        M.draw(cx);
+        start.draw(cx);
+        finish.draw(cx);
+        player.draw(cx);
+
+      }());// end SELFINVOKING
+
+
+
+
+      //Window.requestAnimationFrame(update);
+    };//onload
+    </script>
+  </body>
+</html>

@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body onload = 'startGame()'>
+
+
+
+<center>
+     <h1>Use arrow keys to move, click or press 'R' to 'randomize' the map!</h1>
+    <h1>Try to get from the top corner to the bottom corner!</h1>
+    <button onclick = 'changeLevel(160)'>Level 1</button>
+    <button onclick = 'changeLevel(80)'>Level 2</button>
+    <button onclick = 'changeLevel(40)'>Level 3</button>
+    <button onclick = 'changeLevel(20)'>Level 4</button>
+    <button onclick = 'changeLevel(10)'>Level 5</button>
+  </center>
+<br />
+<center>
+    <canvas id="canvas" width="800" height="800"><p>The canvas is not enabled.</p> </canvas>
+  </center>
+    <script src="utils.js"></script>
+    <script src="keycode.js"></script>
+    <script>
+    var Level=160;
+
+    function changeLevel(l){
+      Level = l;
+      startGame();
+    }
+
+     function startGame() {
+      // set up variables
+    
+        // canvas
+        var canvas = document.getElementById('canvas');
+        // context
+        var cx = canvas.getContext("2d");
+        // EventListeners
+        canvas.addEventListener('mousedown', function () {
+          // do something with mous click here!
+          mouseClick();
+        }, false);
+        //Keyboard listens on window, not canvas
+        window.addEventListener('keydown',onKeyboardEvent, false);
+        // mouse
+        var mouse = utils.captureMouse(canvas);
+        
+        var tileSize=Level;
+
+        var movSpd = tileSize; 
+        
+        // floor tile ctor
+        function floorTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#AAAAAA";
+            this.collide = false; // does not collide
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END floor TILE
+
+          // Wall tile ctor
+        function wallTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#000000";
+            this.collide = true;  // collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y,tileSize, tileSize);  
+            };
+          }// END Wall TILE
+
+          // Player tile ctor
+        function playerTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#00FF00";
+            this.collide = true;// collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END Player TILE
+
+
+          // floor tile ctor
+        function startTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#FF00FF";
+            this.collide = true;// collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END Start TILE
+
+          // Finish tile ctor
+        function finishTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#0000FF";
+            this.collide = true;// collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END Finish TILE
+
+
+            // player instance
+          var start =  new startTile(0,0,cx);
+          var finish = new finishTile(canvas.width - tileSize,canvas.height - tileSize,cx);
+          var player = new playerTile(0,0,cx);
+          // dimension scaling
+          var tilesW = Math.ceil(canvas.width/tileSize);
+          var tilesH = Math.ceil(canvas.height/tileSize);
+
+          // MAP
+          function map(cx, p){
+            this.tiles= new Array(tilesW*tilesH);
+            this.index=0;
+            this.player = p;
+            this.playerindex=0;
+
+            this.fill = function(){
+
+              for (var i=0; i < tilesH; i++){
+                for (var j=0; j < tilesW; j++){
+                  
+                  var r = Math.random();
+                  if (r > 0.5 || ( i === 0 && j === 0 ) || (i*j == (this.tiles.size)-1 )){
+                    this.tiles[this.index] = new floorTile(j*tileSize, i*tileSize,cx);
+                  }
+                  else{
+                    this.tiles[this.index] = new wallTile(j*tileSize, i*tileSize,cx);
+                  }
+                  this.tiles[this.playerindex] = new floorTile(this.player.x, this.player.y,cx);
+                  this.index++;
+                } 
+              }
+
+              this.index=0;
+              // console.log(this.tiles);
+            }// end fill()
+                
+
+            this.draw = function(cx){
+             for (var k = 0; k < tilesH*tilesW; k++){
+                 this.tiles[k].draw(cx);
+              }
+            };// end draw
+
+            this.canMove = function(t1, t2){
+                return t2.collide;
+            };// end canmove
+          }// END MAP
+    
+        // map instance
+        var M =new map(cx, player);
+        M.fill();
+               
+        // keyboard response, movement limited to canvas area
+        function onKeyboardEvent(){    
+          switch (event.keyCode) {
+           case keycode.UP:
+            // console.log("up!");
+             if (player.y > 0 + tileSize/2 && !M.canMove(player, M.tiles[M.playerindex-tilesW]))
+              player.y -= movSpd;
+           break;
+
+           case keycode.DOWN:
+            //console.log("down!");
+            if (player.y < (canvas.height - 1.25*tileSize) && !M.canMove(player, M.tiles[M.playerindex+tilesW]))
+            player.y += movSpd;
+           break;
+
+           case keycode.LEFT:
+           // console.log("left!");
+            if (player.x > 0 + tileSize/2 && !M.canMove(player, M.tiles[M.playerindex-1]))
+              player.x -= movSpd;
+           break;
+
+           case keycode.RIGHT:
+           // console.log("right!");
+            if (player.x < (canvas.width - 1.25*tileSize) && !M.canMove(player, M.tiles[M.playerindex+1]))
+            player.x += movSpd;
+           break;
+
+           case keycode.R:
+              M.fill();
+           break;
+
+          // LEVEL CHANGE
+           case keycode.NUMBER_1:
+              changeLevel(160);
+           break;
+
+           case keycode.NUMBER_2:
+              changeLevel(80);
+           break;
+
+           case keycode.NUMBER_3:
+              changeLevel(40);
+           break;
+
+           case keycode.NUMBER_4:
+              changeLevel(20);
+           break;
+
+           case keycode.NUMBER_5:
+              changeLevel(10);
+           break;
+
+           default:
+            console.log(event.keyCode); 
+          }
+        M.playerindex = (player.x / tileSize) + (player.y / tileSize * tilesW);
+
+        }// END KB EVENT
+
+        function mouseClick(){
+          M.fill();
+        }
+
+
+      // self invoking function STARTS MAIN LOOP!
+      (function drawFrame () {
+        window.requestAnimationFrame(drawFrame, canvas);
+      /** clear*/
+        cx.clearRect(0,0, canvas.width, canvas.height);
+        M.draw(cx);
+        start.draw(cx);
+        finish.draw(cx);       
+        player.draw(cx);
+
+      }());// end SELFINVOKING
+    };//onload
+    </script>
+ </body>
+</html>

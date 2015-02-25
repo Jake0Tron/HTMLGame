@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <canvas id="canvas" width="800" height="800"><p>The canvas is not enabled.</p> </canvas>
+    <script src="utils.js"></script>
+    <script src="keycode.js"></script>
+    <script>
+    window.onload = function () {
+      // set up variables
+    
+        // canvas
+        var canvas = document.getElementById('canvas');
+        // context
+        var cx = canvas.getContext("2d");
+        // EventListeners
+        canvas.addEventListener('mousedown', function () {
+          // do something with mous click here!
+          mouseClick();
+        }, false);
+        //Keyboard listens on window, not canvas
+        window.addEventListener('keydown',onKeyboardEvent, false);
+        // mouse
+        var mouse = utils.captureMouse(canvas);
+        var l1 = 160,
+            l2 = 80,
+            l3 = 20,
+            l4 = 16,
+            l5 = 8,
+            l6 = 4;
+        var tileSize=40;
+
+        var movSpd = tileSize; 
+        
+        // floor tile ctor
+        function floorTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#AAAAAA";
+            this.collide = false; // does not collide
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END floor TILE
+
+          // Wall tile ctor
+        function wallTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#000000";
+            this.collide = true;  // collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y,tileSize, tileSize);  
+            };
+          }// END Wall TILE
+
+          // Player tile ctor
+        function playerTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#00FF00";
+            this.collide = true;// collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END Player TILE
+
+
+          // floor tile ctor
+        function startTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#FF00FF";
+            this.collide = true;// collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END Start TILE
+
+          // Finish tile ctor
+        function finishTile(ix, iy, cx){
+            this.x=ix;
+            this.y=iy;
+            this.color="#0000FF";
+            this.collide = true;// collides
+
+            this.draw = function(cx){
+              cx.fillStyle=this.color;
+              cx.fillRect(this.x , this.y, tileSize, tileSize);  
+            };
+          }// END Finish TILE
+
+
+            // player instance
+          var start =  new startTile(0,0,cx);
+          var finish = new finishTile(canvas.width - tileSize,canvas.height - tileSize,cx);
+          var player = new playerTile(0,0,cx);
+          // dimension scaling
+          var tilesW = Math.ceil(canvas.width/tileSize);
+          var tilesH = Math.ceil(canvas.height/tileSize);
+
+          // MAP
+          function map(cx, p){
+            this.tiles= new Array(tilesW*tilesH);
+            this.index=0;
+            this.player = p;
+            this.playerindex=0;
+
+            this.fill = function(){
+
+              for (var i=0; i < tilesH; i++){
+                for (var j=0; j < tilesW; j++){
+                  
+                  var r = Math.random();
+                  if (r > 0.5){
+                    this.tiles[this.index] = new floorTile(j*tileSize, i*tileSize,cx);
+                  }
+                  else{
+                    this.tiles[this.index] = new wallTile(j*tileSize, i*tileSize,cx);
+                  }
+                  this.tiles[this.playerindex] = new floorTile(this.player.x, this.player.y,cx);
+                  this.index++;
+                } ;
+              }
+
+              this.index=0;
+              // console.log(this.tiles);
+            }// end fill()
+                
+
+            this.draw = function(cx){
+             for (var k = 0; k < tilesH*tilesW; k++){
+                 this.tiles[k].draw(cx);
+              };
+            }// end draw
+//******************************/
+// COLLISION
+//******************************/
+            this.canMove = function(t1, t2){
+                return t2.collide;
+            }// end canmove
+          }// END MAP
+
+        
+
+        var onez = "000000000000000000000111111111111111111001111111111111111110011111111111111111100111111111111111111000000000000000000000";
+        // map instance
+        var M =new map(cx, player);
+        M.fill();
+               
+        // keyboard response, movement limited to canvas area
+        function onKeyboardEvent(){    
+          switch (event.keyCode) {
+           case keycode.UP:
+            // console.log("up!");
+             if (player.y > 0 + tileSize/2 && !M.canMove(player, M.tiles[M.playerindex-tilesW]))
+              player.y -= movSpd;
+           break;
+
+           case keycode.DOWN:
+            //console.log("down!");
+            if (player.y < (canvas.height - 1.5*tileSize) && !M.canMove(player, M.tiles[M.playerindex+tilesW]))
+            player.y += movSpd;
+           break;
+
+           case keycode.LEFT:
+           // console.log("left!");
+            if (player.x > 0 + tileSize/2 && !M.canMove(player, M.tiles[M.playerindex-1]))
+              player.x -= movSpd;
+           break;
+
+           case keycode.RIGHT:
+           // console.log("right!");
+            if (player.x < (canvas.width - 1.5*tileSize) && !M.canMove(player, M.tiles[M.playerindex+1]))
+            player.x += movSpd;
+           break;
+
+           case keycode.R:
+           // console.log("RANDOM!");
+              M.fill();
+           break;
+           default:
+            console.log(event.keyCode); 
+          }
+        M.playerindex = (player.x / tileSize) + (player.y / tileSize * tilesW);
+
+        }// END KB EVENT
+
+        function mouseClick(){
+          M.fill();
+        }
+
+
+      // self invoking function STARTS MAIN LOOP!
+      (function drawFrame () {
+        window.requestAnimationFrame(drawFrame, canvas);
+      /** clear*/
+        cx.clearRect(0,0, canvas.width, canvas.height);
+      /** update */
+        //player.update();
+        // map.update();
+      /** draw */       
+        // enemies.draw(cx);
+          // crazy static effect
+          //M.fill();
+        M.draw(cx);
+        start.draw(cx);
+        finish.draw(cx);
+        player.draw(cx);
+        
+
+      }());// end SELFINVOKING
+
+
+
+
+      //Window.requestAnimationFrame(update);
+    };//onload
+    </script>
+  </body>
+</html>
