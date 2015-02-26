@@ -12,11 +12,11 @@
 <center>
      <h1>Use arrow keys to move, and click or press 'R' to 'randomize' the map to escape!</h1>
     <h1>Try to get from the top corner to the bottom corner!</h1>
-    <button onclick = 'changeLevel(160)'>Level 1</button>
-    <button onclick = 'changeLevel(80)'>Level 2</button>
-    <button onclick = 'changeLevel(40)'>Level 3</button>
-    <button onclick = 'changeLevel(20)'>Level 4</button>
-    <button onclick = 'changeLevel(10)'>Level 5</button>
+    <button onclick = 'changeLevel(1)'>Level 1</button>
+    <button onclick = 'changeLevel(2)'>Level 2</button>
+    <button onclick = 'changeLevel(3)'>Level 3</button>
+    <button onclick = 'changeLevel(4)'>Level 4</button>
+    <button onclick = 'changeLevel(5)'>Level 5</button>
   </center>
 <br />
 <center>
@@ -31,7 +31,7 @@
 
     if (localStorage.Level != null){
       Level = parseInt(localStorage.Level);
-    }else if(parseInt(localStorage.Level) < 10){
+    }else if(parseInt(localStorage.Level) < 40){
       localStorage.Level = Level;
     }else{
       localStorage.Level = Level;
@@ -235,23 +235,23 @@
 
           // LEVEL CHANGE
            case keycode.NUMBER_1:
-              this.changeLevel(160);
+              this.changeLevel(1);
            break;
 
            case keycode.NUMBER_2:
-              this.changeLevel(80);
+              this.changeLevel(2);
            break;
 
            case keycode.NUMBER_3:
-              this.changeLevel(40);
+              this.changeLevel(3);
            break;
 
            case keycode.NUMBER_4:
-              changeLevel(20);
+              changeLevel(4);
            break;
 
            case keycode.NUMBER_5:
-              changeLevel(10);
+              changeLevel(5);
            break;
 
            default:
@@ -271,9 +271,19 @@
             win = true;
             var lvl = parseInt(localStorage.Level);
               console.log(lvl);
-            if (lvl >= 10){
-              lvl /= 2;
-              changeLevel(lvl);              
+            if (lvl == 160){
+              changeLevel(2);
+            }else if (lvl == 100){
+              changeLevel(3);
+            }else if (lvl == 80){
+              changeLevel(4);
+            }else if (lvl == 50){
+              changeLevel(5);
+            }else if (lvl == 40){
+              alert("Congratilations! You escaped the pyramid!");
+              changeLevel(1);
+            }else{
+              changeLevel(1);
             }
         }
       }// end function
@@ -293,7 +303,23 @@
     };//onload
 
     function changeLevel(l){
-      localStorage.Level = l;
+      
+      if (l==1){
+        localStorage.Level = 160;
+      }else if (l==2){
+        localStorage.Level = 100;
+      }else if (l==3){
+        localStorage.Level = 80;
+      }else if (l==4){
+        localStorage.Level = 50;    
+      }else if (l==5){
+        localStorage.Level = 40;
+      }else{
+
+      }
+
+
+
       location.reload();
     }
 
