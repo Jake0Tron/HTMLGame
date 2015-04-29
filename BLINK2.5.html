@@ -1,0 +1,482 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>BLINK</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/utils.js"></script>
+    <script src="js/keycode.js"></script>
+  </head>
+  <body onload = 'startGame()'>
+    <div id = 'header'>
+     <a href='http://jakedeacon.com'> <div id= 'title'>Jake Deacon</div></a>
+    </div>   
+    <br />  
+    <br />  
+    <br />  
+    <div id="ContentContainer">
+      <div id = "Content">
+        <center>
+         <h3>
+          Use arrow keys, or click to move.<br />
+          Click 'BLINK' to randomize the map!<br />
+          Can you escape the Pyramid?
+        </h3>
+         <hr/>
+          <button onclick = 'changeLevel(1)'>Level 1</button>
+          <button onclick = 'changeLevel(2)'>Level 2</button>
+          <button onclick = 'changeLevel(3)'>Level 3</button>
+          <button onclick = 'changeLevel(4)'>Level 4</button>
+          <button onclick = 'changeLevel(5)'>Level 5</button>
+        </center>
+      </div>
+    </div>
+
+<br />
+<center>
+    <canvas id="canvas" width="800" height="800"><p>The canvas is not enabled.</p> </canvas>
+</center>
+    
+<script>
+
+    var Level=160;
+    var win=false;
+
+    var M = localStorage.Map;
+    var totalSteps;
+    var totalRands;
+
+    // 'resume' game from last time
+
+    if (localStorage.totalSteps != null){
+       totalSteps=parseInt(localStorage.totalSteps);
+    }else{
+       localStorage.totalSteps=0;
+    }
+
+    if (localStorage.totalRands != null){
+      totalRands=parseInt(localStorage.totalRands);
+    }else{
+      localStorage.totalRands=0;
+    }
+
+    if (localStorage.Level != null){
+      Level = parseInt(localStorage.Level);
+    }else{
+      localStorage.Level = Level;
+    }
+
+    var rands = 0;
+    var steps = 0;
+    // canvas
+    var canvas = document.getElementById('canvas');
+    // context
+    var cx = canvas.getContext("2d");
+
+    // dimension scaling
+    var tilesW;
+    var tilesH;
+
+    var mouse = null;
+
+    var touch = null;
+
+    var tileSize=Level;
+
+    function startGame() {
+      // set up variables
+      // EventListeners
+      canvas.addEventListener('mousedown',mouseClick , false);
+    
+      //Keyboard listens on window, not canvas
+      window.addEventListener('keydown',onKeyboardEvent, false);
+      // mouse
+      mouse = utils.captureMouse(canvas);
+      touch = utils.captureTouch(canvas);
+
+      // floor tile ctor
+      function floorTile(ix, iy, cx){
+          this.x=ix;
+          this.y=iy;
+          this.collide = false; // does not collide
+
+          this.draw = function(cx){
+            var image = new Image();
+            image.src = "spritesheet.png";
+            var sx, sy, sw, sh;
+            sx = 600;
+            sy = 0;
+            sw = 200;
+            sh = 200;
+            cx.drawImage(image,sx ,sy ,sw , sh, this.x , this.y, tileSize, tileSize);
+          };
+        }// END floor TILE
+
+        // Wall tile ctor
+      function wallTile(ix, iy, cx){
+          this.x=ix;
+          this.y=iy;
+          this.collide = true;  // collides
+
+          this.draw = function(cx){
+            var image = new Image();
+            image.src = "spritesheet.png";
+            var sx, sy, sw, sh;
+            sx = 161;
+            sy = 0;
+            sw = 80;
+            sh = 80;
+            cx.drawImage(image,sx ,sy ,sw , sh, this.x , this.y, tileSize, tileSize);  
+          };
+        }// END Wall TILE
+
+        // Player tile ctor
+      function playerTile(ix, iy, cx){
+        this.x=ix;
+        this.y=iy;
+        this.collide = true;// collides
+        this.direction=3;
+          
+        this.draw = function(cx){
+        var image = new Image();
+        image.src = "spritesheet.png";
+        var sx, sy, sw, sh;
+
+        if (this.direction == 0){ // up
+         //image.src = "player0.png";
+          sx = 520;
+          sy = 0;
+          sw = 80;
+          sh = 100;
+
+        }else if (this.direction == 1){ // down
+          //image.src = "player1.png";
+          sx = 440;
+          sy = 0;
+          sw = 80;
+          sh = 100;
+
+        }else if (this.direction == 2){ // left
+          //image.src = "player2.png";
+          sx = 340;
+          sy = 0;
+          sw = 100;
+          sh = 80;
+        }else if (this.direction == 3){ //right
+          //image.src = "player3.png";
+          sx = 241;
+          sy = 0;
+          sw = 100;
+          sh = 80;
+        }else{}
+        cx.drawImage(image,sx ,sy ,sw , sh, this.x , this.y, tileSize, tileSize);  
+        };
+      }// END Player TILE
+
+
+        // floor tile ctor
+      function startTile(ix, iy, cx){
+          this.x=ix;
+          this.y=iy;
+          this.collide = true;// collides
+
+          this.draw = function(cx){
+            var image = new Image();
+            image.src = "spritesheet.png";
+            var sx, sy, sw, sh;
+            sx = 80;
+            sy = 0;
+            sw = 80;
+            sh = 80;
+            cx.drawImage(image,sx ,sy ,sw , sh, this.x , this.y, tileSize, tileSize); 
+          };
+        }// END Start TILE
+
+        // Finish tile ctor
+      function finishTile(ix, iy, cx){
+          this.x=ix;
+          this.y=iy;
+          this.collide = true;// collides
+
+          this.draw = function(cx){
+            var image = new Image();
+            image.src = "spritesheet.png";
+            var sx, sy, sw, sh;
+            sx = 2;
+            sy = 0;
+            sw = 70;
+            sh = 70;
+            cx.drawImage(image,sx ,sy ,sw , sh, this.x , this.y, tileSize, tileSize);  
+          };
+        }// END Finish TILE
+
+
+          // player instance
+        var start =  new startTile(0,0,cx);
+        var finish = new finishTile(canvas.width - tileSize, canvas.height - tileSize,cx);
+        var player = new playerTile(0,0,cx);
+        
+        tilesW = Math.ceil(canvas.width/tileSize);
+        tilesH = Math.ceil(canvas.height/tileSize);
+
+        // MAP
+      function map(cx, p){
+        this.tiles= new Array(tilesW*tilesH);
+        this.index=0;
+        this.player = p;
+        this.playerindex=0;
+        this.finishIndex=(tilesW*tilesH)-1;
+
+        this.fill = function(){
+          for (var i=0; i < tilesH; i++){
+            for (var j=0; j < tilesW; j++){
+              
+              var r = Math.random();
+
+              if (r > 0.5 || ( i === 0 && j === 0 ) || ((i+1)*(j+1) == tilesW*tilesH) ){
+                this.tiles[this.index] = new floorTile(j*tileSize, i*tileSize,cx);
+              }
+              else{
+                this.tiles[this.index] = new wallTile(j*tileSize, i*tileSize,cx);
+              }
+              this.tiles[this.playerindex] = new floorTile(this.player.x, this.player.y,cx);
+              this.index++;
+            } 
+          }
+
+          this.index=0;
+        }// end fill()
+            
+
+        this.draw = function(cx){
+         for (var k = 0; k < tilesH*tilesW; k++){
+             this.tiles[k].draw(cx);
+          }
+        };// end draw
+        // collision
+        this.canMove = function(t1, t2){
+            return t2.collide;
+        };// end canmove
+      }// END MAP
+  
+      // map instance
+      M = new map(cx, player);
+      localStorage.Map=M;
+      M.fill();
+      
+      // keyboard response, movement limited to canvas area
+      function onKeyboardEvent(){    
+        switch (event.keyCode) {
+          //MOVEMENTS
+          case keycode.UP:
+              player.direction=0;
+            if (player.y > 0 + tileSize/2 && !M.canMove(player, M.tiles[M.playerindex-tilesW])){
+              player.y -= tileSize;
+              steps++;
+            }
+          break;
+
+          case keycode.DOWN:
+            player.direction=1;
+            if (player.y < (canvas.height - 1.25*tileSize) && !M.canMove(player, M.tiles[M.playerindex+tilesW])){
+              player.y += tileSize;
+              steps++;
+            }
+          break;
+
+          case keycode.LEFT:
+            player.direction=2;
+            if (player.x > 0 + tileSize/2 && !M.canMove(player, M.tiles[M.playerindex-1])){
+              player.x -= tileSize;
+              steps++;
+            }
+          break;
+
+          case keycode.RIGHT:
+            player.direction=3;
+            if (player.x < (canvas.width - 1.25*tileSize) && !M.canMove(player, M.tiles[M.playerindex+1])){
+              player.x += tileSize;
+              steps++;         
+            }
+          break;
+
+          case keycode.R:
+            M.fill();
+            rands++;
+          break;
+          case keycode.SPACE:
+            M.fill();
+            rands++;
+          break;
+
+          // LEVEL CHANGE
+          case keycode.NUMBER_1:
+            this.changeLevel(1);
+          break;
+
+          case keycode.NUMBER_2:
+            this.changeLevel(2);
+          break;
+
+          case keycode.NUMBER_3:
+            this.changeLevel(3);
+          break;
+
+          case keycode.NUMBER_4:
+            changeLevel(4);
+          break;
+
+          case keycode.NUMBER_5:
+            changeLevel(5);
+          break;
+
+          default:
+          break;
+        }
+        M.playerindex = (player.x / tileSize) + (player.y / tileSize * tilesW);
+      }// END KB EVENT
+
+       function checkWin(){
+        if (M.playerindex == M.finishIndex && win == false){
+          win = true;
+
+          //console.log("total steps before"+totalSteps+" total rands before"+totalRands);
+
+          totalSteps+=steps;
+          totalRands+=rands;
+
+          //console.log("total steps after "+totalSteps+" total rands after "+totalRands);
+          //get
+        
+          //set
+          localStorage.totalSteps=parseInt(totalSteps);
+
+          //set
+          localStorage.totalRands=parseInt(totalRands);
+
+          //get
+          var lvl = parseInt(localStorage.Level);
+          //check level
+          if (lvl == 160){
+            changeLevel(2);
+          }else if (lvl == 100){
+            changeLevel(3);
+          }else if (lvl == 80){
+            changeLevel(4);
+          }else if (lvl == 50){
+            changeLevel(5);
+          }else if (lvl == 40){
+            alert("Congratulations! You escaped the pyramid!\n You had a total of " + totalSteps + "steps, and " + totalRands + " blinks!");
+            changeLevel(1);
+          }else{
+            changeLevel(1);
+          }
+        }
+      }// end function
+    
+
+      // self invoking function STARTS MAIN LOOP!
+      (function drawFrame () {
+        window.requestAnimationFrame(drawFrame, canvas);
+        /** clear*/
+        cx.clearRect(0,0, canvas.width, canvas.height);
+        M.draw(cx);
+        start.draw(cx);
+        finish.draw(cx);       
+        player.draw(cx);
+        checkWin();
+        document.getElementById("totalRands").innerHTML = totalRands;
+        document.getElementById("totalSteps").innerHTML = totalSteps;
+        document.getElementById("rands").innerHTML = rands;
+        document.getElementById("steps").innerHTML = steps;
+      }());// end SELFINVOKING
+    };//onload
+
+    function changeLevel(l){
+      if (l==1){
+        localStorage.clear();
+        localStorage.Level = 160;
+        localStorage.totalRands = 0;
+        localStorage.totalSteps = 0;
+      }else if (l==2){
+        localStorage.Level = 100;
+      }else if (l==3){
+        localStorage.Level = 80;
+      }else if (l==4){
+        localStorage.Level = 50;    
+      }else if (l==5){
+        localStorage.Level = 40;
+      }else{}
+
+      location.reload();
+    }
+
+    // Handles all behaviour associated with mouse clicks/finger touches on canvas
+    function mouseClick(){
+        // which block the mouse is clicking in
+        var mX=Math.floor(mouse.x/tileSize);
+        var mY=Math.floor(mouse.y/tileSize);
+
+        var pX=Math.floor(M.player.x/tileSize);
+        var pY=Math.floor(M.player.y/tileSize);
+        // players location
+        var index = (M.player.x / tileSize) + (M.player.y / tileSize * tilesW);
+        
+        if (mX > pX && !M.canMove(M.player, M.tiles[M.playerindex+1]) ){
+          //right
+            M.player.direction=3;
+            M.player.x += tileSize;
+          
+            
+            // DISALLOW DIAGONALS
+            mY=pY;
+        }else if (mX < pX && !M.canMove(M.player, M.tiles[M.playerindex-1])){
+          //left
+          M.player.direction=2;
+          M.player.x -= tileSize;
+          
+          
+          // DISALLOW DIAGONALS
+          mY=pY;  
+        }
+
+        if(mY > pY && !M.canMove(M.player, M.tiles[M.playerindex+tilesW])){
+          //down
+            M.player.direction=1;
+            M.player.y += tileSize;
+            
+        }else if (mY < pY && !M.canMove(M.player, M.tiles[M.playerindex-tilesW])){
+          //up
+            M.player.direction=0;
+            M.player.y -= tileSize;
+            
+        }
+        
+        steps++;
+
+        //clicking on player
+        if (mX == pX && mY == pY){
+          M.fill();
+          rands++;
+        }
+
+        // update player index after movement
+        M.playerindex = (M.player.x / tileSize) + (M.player.y / tileSize * tilesW);
+    }
+
+    </script>
+  <center>
+  
+  <div id="gameButton" onclick ="M.fill()">BLINK</div>
+ <div id="ContentContainer">
+      <div id = "Content">
+    <center>
+      <h3>NUMBER OF SWAPS: <span id='rands'></span> |  NUMBER OF STEPS: <span id='steps'></span></h3>
+      <h4>TOTAL SWAPS: <span id='totalRands'></span> |  TOTAL STEPS: <span id='totalSteps'></span></h4>
+    </center>
+    </div>
+  </div>
+  </center>
+  <div id='copy'>Copyright Jake Deacon &copy;2015</div>
+
+ </body>
+</html>
